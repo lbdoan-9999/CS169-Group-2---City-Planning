@@ -1,6 +1,5 @@
 # ==== IMPORT ================================================================ #
 
-from copy      import deepcopy
 from itertools import combinations, groupby, product
 from time      import time
 
@@ -120,9 +119,8 @@ def generate_resident(n, res, mix):
 def generate_population(n, μ, σ = 1):
     
     """
-    Generate a set of size POP of residents in a population with a traversal
-    size generated from a Gaussian distribution with mean μ and standard
-    deviation σ.
+    Generate a set of size n of residents in a population with a traversal size
+    generated from a Gaussian distribution with mean μ and standard deviation σ.
     |
     n := (uint) population size
     μ := (uint) mean of traversal size
@@ -180,7 +178,20 @@ class City():
         return tmp
     
     
-    def test_dist(self, vertices, m):
+    def test_dist(self, a, vertices, m):
+        
+        d = 0
+        
+        for b in vertices:
+            
+            if self.ajm[a][b]:
+                
+                d += self.ajm[a][b] * DIST_CACHE[m.place[a].x + CACHE_SIZE][m.place[a].y + CACHE_SIZE][m.place[b].x + CACHE_SIZE][m.place[b].y + CACHE_SIZE]
+        
+        return d
+    
+    
+    def test_tot_dist(self, vertices, m):
         
         """
         Compute total distance of currently placed locations.
@@ -231,10 +242,12 @@ class City():
                         
                         # Temporary insert locations at coordinate for evaluation.
                         map_tmp.insert(P.x, P.y, name)
-                        fixed.add(name)
                         
                         # Evaluate possible placement.
-                        dist_tmp = self.test_dist(fixed, map_tmp)
+                        
+                        # Room for optimization. Just evaluate the newly added
+                        # point for the map_tmp.
+                        dist_tmp = self.test_dist(name, fixed, map_tmp)
                         
                         if dist_tmp < min_dist:
                         
@@ -244,7 +257,6 @@ class City():
                         
                         # Revert change.
                         map_tmp.undo()
-                        fixed.remove(name)
                     
                     # Add permanent update to solution.
                     map_tmp.insert(opt_P.x, opt_P.y, opt_name)
@@ -252,13 +264,30 @@ class City():
                     cvmce[cnt].remove(opt_name)
                     loc_tmp.remove(opt_name)
         
-        return (self.test_dist(fixed, map_tmp), n, time() - T)
+        return (self.test_tot_dist(fixed, map_tmp), n, time() - T)
     
     
     def optimize_na(self):
         
         pass
-
+    
+    """
+    def random_placement(self):
+        
+        loc_tmp = list(self.loc)
+        map_tmp = Map(len(self.loc))
+        
+        while loc_tmp:
+            
+            t = tuple(map_tmp.border())
+            p = rand.choice(t)
+            l = rand.choice(loc_tmp)
+                
+            map_tmp.insert(p.x, p.y, l)
+            loc_tmp.remove(l)
+        
+        return self.test_tot_dist(self.loc, map_tmp)
+    """
 
 class Map():
     
@@ -408,3 +437,7 @@ class Pair():
         return abs(self.x - X.x) + abs(self.y - X.y)
 
 # ==== EOF =================================================================== #
+
+A = City(generate_population(1024, 10))
+print(A.optimize_gt())
+print(A.random_placement())
