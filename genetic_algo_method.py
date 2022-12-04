@@ -1,6 +1,9 @@
 import random
 import copy
 
+from graph_method import generate_location
+from time import time
+
 # Selection Method
 class TournamentSelection:
     def __init__(self, k):
@@ -196,6 +199,8 @@ def mutate(child, n):
     adjList: an adjacency list
 """
 def genetic_algorithm(f, population, k_max, S, adjList):
+    T = time()
+    
     for k in range(k_max):
         parents = select(S, [f(pop, adjList) for pop in population])
         children = [crossover(population[p[0]], population[p[1]], len(adjList))
@@ -213,7 +218,7 @@ def genetic_algorithm(f, population, k_max, S, adjList):
             minVal = y[i]
             minArg = i
     
-    return population[minArg]
+    return population[minArg], time()-T
     
 
 def create_info_dict(x, adjList):
@@ -244,34 +249,131 @@ def f(x, adjList):
             
     return sumNum
 
-adjList = AdjacencyList()
-adjList.add("Home A", "Gym")
-adjList.add("Home A", "Work")
-adjList.add("Home B", "School")
-adjList.add("Apartment", "School")
-adjList.add("Gym", "Library")
-adjList.add("Gym", "Home A")
-adjList.add("School", "Store")
-adjList.add("School", "Gym")
-adjList.add("Library", "Home A")
-adjList.add("Store", "Theater")
-adjList.add("Theater", "Car Dealer")
-adjList.add("Car Dealer", "Home B")
-adjList.add("Work", "Apartment")
 
-population = rand_population(adjList, 10, 1, 5)
-k_max = 1000
-S = TournamentSelection(500)
+def generate_resident(n, res, mix, adjList):
+    
+    """
+    Add to an adjacency list using a sequence of size n of vertices
+    that represent the walk of some arbitrary resident in the city.
+    |
+    n   := (uint) the number of vertices in the walk
+    res := [str] list of residential areas
+    mix := [str] list of residential and commercial areas
+    """
+    
+    home = random.choice(res)
 
-x = genetic_algorithm(f, population, k_max, S, adjList)
+    route = [home] + random.choices(mix, k = 1 if n < 1 else n) + [home]
 
-print(f(x, adjList))
+    for i in range(len(route)-1):
+        adjList.add(route[i], route[i+1])
 
-for i in range(len(x)):
-    for j in range(len(x[i])):
-        if x[i][j] != -1:
-            x[i][j] = adjList.array[x[i][j]][0]
+def generate_population(n, μ, σ = 1):
+    
+    """
+    Generate an adjacency list of size n of residents in a population with a traversal size
+    generated from a Gaussian distribution with mean μ and standard deviation σ.
+    |
+    n := (uint) population size
+    μ := (uint) mean of traversal size
+    σ := (uint) standard deviation of traversal size
+    """
+    
+    r = generate_location(0, n)
+    m = generate_location(1, n)
 
-for row in x:
-    print(row)
+    adjList = AdjacencyList()
+
+    for _ in range(n):
+        generate_resident(round(random.gauss(μ, σ)), r, m, adjList)
+
+    return adjList
+"""
+    Generate optimal dimensions for a grid according to the number of unique locations.
+    size: number of unique locations
+"""
+def generate_dimensions(size):
+    m = 10
+    n = 10
+
+    # alternate which dimension you are making bigger/smaller
+    mTurn = True
+
+    # make it smaller
+    while m*n > size:
+        if mTurn:
+            m -= 1
+            mTurn = False
+        else:
+            n -= 1
+            mTurn = True
+
+    # make it bigger
+    while m*n < size:
+        if mTurn:
+            m += 1
+            mTurn = False
+        else:
+            n += 1
+            mTurn = True
+    
+    return m, n
+
+if __name__ == "__main__":
+
+    adjList = generate_population(256, 4)
+
+    # get smallest m and n possible to fit k unique locations in a grid
+    m, n = generate_dimensions(len(adjList.array))
+    
+    population = rand_population(adjList, m, n, 10)
+    k_max = 500
+    S = TournamentSelection(5)
+
+    x = genetic_algorithm(f, population, k_max, S, adjList)[0]
+
+    print(f(x, adjList))
+
+    for i in range(len(x)):
+        for j in range(len(x[i])):
+            if x[i][j] != -1:
+                x[i][j] = adjList.array[x[i][j]][0]
+
+    for row in x:
+        print(row)
+
+    """
+    adjList = AdjacencyList()
+    adjList.add("Home A", "Gym")
+    adjList.add("Home A", "Work")
+    adjList.add("Home B", "School")
+    adjList.add("Apartment", "School")
+    adjList.add("Gym", "Library")
+    adjList.add("Gym", "Home A")
+    adjList.add("School", "Store")
+    adjList.add("School", "Gym")
+    adjList.add("Library", "Home A")
+    adjList.add("Store", "Theater")
+    adjList.add("Theater", "Car Dealer")
+    adjList.add("Car Dealer", "Home B")
+    adjList.add("Work", "Apartment")
+
+
+
+    population = rand_population(adjList, 4, 4, 5)
+    k_max = 1000
+    S = TournamentSelection(500)
+
+    x = genetic_algorithm(f, population, k_max, S, adjList)[0]
+
+    print(f(x, adjList))
+
+    for i in range(len(x)):
+        for j in range(len(x[i])):
+            if x[i][j] != -1:
+                x[i][j] = adjList.array[x[i][j]][0]
+
+    for row in x:
+        print(row)
+    """
 

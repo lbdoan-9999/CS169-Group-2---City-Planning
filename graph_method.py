@@ -437,7 +437,7 @@ class Pair():
         return abs(self.x - X.x) + abs(self.y - X.y)
 
 # ==== EOF =================================================================== #
-
-A = City(generate_population(1024, 10))
-print(A.optimize_gt())
-print(A.random_placement())
+if __name__ == "__main__":
+    A = City(generate_population(1024, 10))
+    print(A.optimize_gt())
+    print(A.random_placement())
