@@ -8,7 +8,7 @@ import random as rand
 
 # ==== CACHE ================================================================= #
 
-CACHE_SIZE = 32
+CACHE_SIZE = 24
 DIST_CACHE = [[[[(abs(y - w) + abs(z - x)) for z in range(-CACHE_SIZE, CACHE_SIZE)] \
                                            for y in range(-CACHE_SIZE, CACHE_SIZE)] \
                                            for x in range(-CACHE_SIZE, CACHE_SIZE)] \
@@ -148,7 +148,7 @@ class City():
         """
         
         self.loc = set([vertex for res in pop for vertex in res])
-        self.map = Map(len(self.loc))
+        self.map = Map(int(math.ceil(math.sqrt(len(self.loc)))) * 2 + 1)
         
         # ==== Generate an adjacency-matrix. ==== #
         
@@ -171,8 +171,8 @@ class City():
         """
         
         tmp     = City([[]])
-        tmp.ajm = dict(self.ajm)
-        tmp.loc = set(self.loc)
+        tmp.ajm = self.ajm.copy()
+        tmp.loc = self.loc.copy()
         tmp.map = self.map.copy()
         
         return tmp
@@ -180,13 +180,17 @@ class City():
     
     def test_dist(self, a, vertices, m):
         
+        """
+        NOT OPTIMAL. VERTEX WITH SPARSE NEIGHBORS COULD BE OUTPUT.
+        """
+        
         d = 0
         
         for b in vertices:
             
             if self.ajm[a][b]:
                 
-                d += self.ajm[a][b] * DIST_CACHE[m.place[a].x + CACHE_SIZE][m.place[a].y + CACHE_SIZE][m.place[b].x + CACHE_SIZE][m.place[b].y + CACHE_SIZE]
+                d += DIST_CACHE[m.place[a].x + CACHE_SIZE][m.place[a].y + CACHE_SIZE][m.place[b].x + CACHE_SIZE][m.place[b].y + CACHE_SIZE] / self.ajm[a][b]
         
         return d
     
@@ -221,8 +225,8 @@ class City():
         T = time()
         n = 0
         
-        loc_tmp = set(self.loc)
-        map_tmp = self.map.copy()
+        loc_tmp = self.loc.copy()
+        map_tmp = Map(int(math.ceil(math.sqrt(len(self.loc)))) * 2 + 1)
         fixed   = set()
         
         while loc_tmp:
@@ -244,9 +248,6 @@ class City():
                         map_tmp.insert(P.x, P.y, name)
                         
                         # Evaluate possible placement.
-                        
-                        # Room for optimization. Just evaluate the newly added
-                        # point for the map_tmp.
                         dist_tmp = self.test_dist(name, fixed, map_tmp)
                         
                         if dist_tmp < min_dist:
@@ -310,7 +311,7 @@ class Map():
         Return a copy of the border points.
         """
         
-        return set(self.point)
+        return self.point.copy()
     
     
     def copy(self):
@@ -320,9 +321,9 @@ class Map():
         """
         
         tmp       = Map(self.size)
-        tmp.place = dict(self.place)
-        tmp.plane = dict(self.plane)
-        tmp.point = set(self.point)
+        tmp.place = self.place.copy()
+        tmp.plane = self.plane.copy()
+        tmp.point = self.point.copy()
         
         return tmp
     
@@ -437,7 +438,3 @@ class Pair():
         return abs(self.x - X.x) + abs(self.y - X.y)
 
 # ==== EOF =================================================================== #
-
-A = City(generate_population(1024, 10))
-print(A.optimize_gt())
-print(A.random_placement())
